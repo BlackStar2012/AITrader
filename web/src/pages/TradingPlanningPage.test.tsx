@@ -348,6 +348,10 @@ it('preflight failure clears busy state without accumulating phantom user messag
   ).toBeNull()
   expect(screen.getAllByText('Account sizing unavailable')).toHaveLength(1)
   expect(screen.getByLabelText('Trade idea')).toBeEnabled()
+  expect(
+    JSON.parse(localStorage.getItem('frontier-batch-v1//ex/binance/BTCUSDT')!)
+      .ids
+  ).toEqual(['one', 'two'])
 })
 
 it('account review does not restart model activity or show a planning stop button', async () => {

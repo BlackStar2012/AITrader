@@ -78,14 +78,15 @@ func TestPlanningHistoryIgnoresViewportOnEveryVenue(t *testing.T) {
 
 func TestLimitedHistoryAndFailedPaginationAreDisclosed(t *testing.T) {
 	now := time.Now().Unix()
-	f := &historyFixture{start: now - 10*3600}
+	// Include a daily candle regardless of the UTC hour when this test runs.
+	f := &historyFixture{start: now - 36*3600}
 	e := Engine{Charts: f}
 	input := Input{Venue: "okx", Symbol: "BTC-USDT-SWAP", Interval: "1h"}
 	if _, err := e.chartContext(context.Background(), &input, func(Event) error { return nil }); err != nil {
 		t.Fatal(err)
 	}
 	w := input.Analysis.Windows[0]
-	if w.Count != 10 || !w.Truncated || w.TargetCount != 1200 {
+	if w.Count != 36 || !w.Truncated || w.TargetCount != 1200 {
 		t.Fatalf("fabricated or hidden missing history: %+v", w)
 	}
 	f = &historyFixture{fail: true}

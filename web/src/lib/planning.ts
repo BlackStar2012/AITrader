@@ -42,6 +42,7 @@ export interface Idea {
   }
 }
 export interface Constraints {
+  planning_only?: boolean
   leverage?: number
   available_margin?: string
   sizing_policy?: 'account_margin'

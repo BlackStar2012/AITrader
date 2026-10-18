@@ -39,6 +39,9 @@ export function PlanFunding({
         <small>
           Est. margin {money(margin)} {quote}
         </small>
+        {plan.constraints.planning_only && (
+          <small>Equity preview · refresh before trading</small>
+        )}
       </div>
     )
   return (
@@ -63,7 +66,13 @@ export function PlanFunding({
           </strong>
         </div>
       </div>
-      {Number.isFinite(available) && available > 0 ? (
+      {plan.constraints.planning_only ? (
+        <p>
+          Equity preview only: no free margin was available. Amounts use account
+          equity as a reference, not available funds. Refresh and review with
+          available margin before trading.
+        </p>
+      ) : Number.isFinite(available) && available > 0 ? (
         <p>
           Available margin at sizing: {money(available)} {quote} · This plan
           uses {money((margin / available) * 100)}% before costs. Fees and

@@ -147,6 +147,7 @@ func (s Snapshot) Validate(now time.Time) error {
 }
 
 type Constraints struct {
+	PlanningOnly    bool    `json:"planning_only,omitempty"`
 	SizingPolicy    string  `json:"sizing_policy,omitempty"`
 	Leverage        int     `json:"leverage,omitempty"`
 	AvailableMargin Decimal `json:"available_margin,omitempty"`
@@ -184,7 +185,12 @@ func (c Constraints) Validate() error {
 	if c.Leverage < 0 || c.Leverage > 20 {
 		return errors.New("planning leverage must be between 1x and 20x")
 	}
-	if c.AvailableMargin != "" && (!Positive(c.AvailableMargin) || must(c.AvailableMargin).Cmp(must(c.Equity)) > 0) {
+	if c.PlanningOnly {
+		available, err := rat(c.AvailableMargin)
+		if c.SizingPolicy != SizingAccountMargin || err != nil || available.Sign() > 0 {
+			return errors.New("equity previews require verified non-positive available margin")
+		}
+	} else if c.AvailableMargin != "" && (!Positive(c.AvailableMargin) || must(c.AvailableMargin).Cmp(must(c.Equity)) > 0) {
 		return errors.New("available margin must be positive and cannot exceed equity")
 	}
 	if must(c.MaxRisk).Cmp(must(c.Equity)) > 0 || must(c.MaxNotional).Cmp(mul(must(c.Equity), big.NewRat(int64(c.EffectiveLeverage()), 1))) > 0 {

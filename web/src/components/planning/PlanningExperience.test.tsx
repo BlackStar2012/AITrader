@@ -6,6 +6,22 @@ import { ExecutionSchedule } from './ExecutionSchedule'
 import { PlanningActivity, recordActivity } from './PlanningActivity'
 import { PlanStructures } from './PlanStructures'
 afterEach(cleanup)
+
+it('shows the unfunded planning explanation as activity, not an interruption', () => {
+  const rows = recordActivity([], {
+    type: 'planning_sizing',
+    data: {
+      planning_only: true,
+      message: 'No free margin. Continuing with equity previews.',
+    },
+  })
+  render(<PlanningActivity items={rows} busy />)
+  expect(
+    screen.getByText('No free margin. Continuing with equity previews.')
+  ).toBeInTheDocument()
+  expect(rows[0].state).toBe('done')
+  expect(screen.queryByText('Planning interrupted')).toBeNull()
+})
 const plan = (kind: 'market' | 'limit' | 'ladder' | 'twap'): Plan => ({
   id: kind,
   hash: kind,

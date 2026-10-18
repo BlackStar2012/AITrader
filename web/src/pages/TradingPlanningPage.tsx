@@ -577,8 +577,6 @@ export function TradingPlanningPage() {
       ids: [],
       created: new Date().toISOString(),
     }
-    rememberBatch(generation)
-
     setError('')
     setOrderNotice('')
     setInstruction('')
@@ -618,6 +616,8 @@ export function TradingPlanningPage() {
         (event) => {
           streamStarted = true
           setTrace((items) => recordActivity(items, event))
+          if (event.type === 'planning_sizing')
+            setOrderNotice(String(event.data.message))
           if (event.type === 'assistant')
             setMessages((m) => [
               ...m,
@@ -1322,7 +1322,10 @@ export function TradingPlanningPage() {
                   {(
                     Object.keys(defaultLimits) as Exclude<
                       keyof Constraints,
-                      'leverage' | 'available_margin' | 'sizing_policy'
+                      | 'leverage'
+                      | 'available_margin'
+                      | 'sizing_policy'
+                      | 'planning_only'
                     >[]
                   )
                     .filter(

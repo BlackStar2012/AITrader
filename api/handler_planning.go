@@ -359,7 +359,7 @@ func (s *Server) handlePlanningCompile(c *gin.Context) {
 		in.Idea.Execution = &core.Execution{Kind: "limit"}
 	}
 	if in.AutoSize {
-		in.Constraints, e = s.planningAccountLimits(c.Request.Context(), c.GetString("user_id"), ex.ID, in.Symbol, in.Constraints)
+		in.Constraints, e = s.planningAccountLimits(c.Request.Context(), c.GetString("user_id"), ex.ID, in.Symbol, in.Constraints, false)
 		if e != nil {
 			planningError(c, e)
 			return
@@ -402,7 +402,7 @@ func (s *Server) handlePlanningChat(c *gin.Context) {
 		return
 	}
 	if in.AutoSize {
-		in.Constraints, e = s.planningAccountLimits(c.Request.Context(), user, ex.ID, in.Symbol, in.Constraints)
+		in.Constraints, e = s.planningAccountLimits(c.Request.Context(), user, ex.ID, in.Symbol, in.Constraints, true)
 		if e != nil {
 			planningError(c, e)
 			return
@@ -788,7 +788,7 @@ func (s *Server) handlePlanningPluginData(c *gin.Context) {
 	c.JSON(200, result)
 }
 
-func (s *Server) planningAccountLimits(ctx context.Context, user, exchangeID, symbol string, constraints core.Constraints) (core.Constraints, error) {
+func (s *Server) planningAccountLimits(ctx context.Context, user, exchangeID, symbol string, constraints core.Constraints, preview bool) (core.Constraints, error) {
 	if exchangeID == "" {
 		return constraints, errors.New("connect a trading account for automatic sizing")
 	}
@@ -799,6 +799,9 @@ func (s *Server) planningAccountLimits(ctx context.Context, user, exchangeID, sy
 	a, e := b.Account(ctx, symbol)
 	if e != nil {
 		return constraints, e
+	}
+	if preview {
+		return live.DraftAccountLimits(a, constraints)
 	}
 	return live.AccountLimits(a, constraints)
 }

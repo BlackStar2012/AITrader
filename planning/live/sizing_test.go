@@ -1,10 +1,73 @@
 package live
 
 import (
+	"context"
+	"nofx/planning"
 	"nofx/planning/core"
 	"testing"
 	"time"
 )
+
+func TestZeroFreeMarginAllowsDraftsButNeverApproval(t *testing.T) {
+	for _, kind := range []string{"market", "limit", "ladder", "twap"} {
+		t.Run(kind, func(t *testing.T) {
+			controller, broker, market, base := setup(t, kind)
+			account := Account{Equity: "259.47", Available: "0", FeeBPS: "5", Position: "0.01624", OpenOrders: 2}
+			limits, err := DraftAccountLimits(account, core.Constraints{Leverage: 5, MinRewardRisk: "0", FeeBPS: "10", SlippageBPS: "10"})
+			if err != nil || !limits.PlanningOnly || limits.AvailableMargin != "0" || limits.Equity != account.Equity {
+				t.Fatalf("zero free margin blocked planning or invented funds: %+v %v", limits, err)
+			}
+			preview, err := core.Compile(market.book, limits, base.Idea, time.Now().UTC())
+			if err != nil {
+				t.Fatal(err)
+			}
+			store := planning.DraftStore{DB: controller.DB, UserID: "alice", ExchangeID: "exchange", Venue: "binance"}
+			if err = store.Add([]core.Plan{preview}); err != nil {
+				t.Fatal(err)
+			}
+			// Even after funding, this exact reference-size plan needs a fresh review.
+			if err = CheckAccountCapacity(preview, broker.account); err == nil {
+				t.Fatal("equity preview treated as a funded order")
+			}
+			if _, err = controller.Approve(context.Background(), "alice", preview.ID, preview.Hash, "APPROVE LIVE"); err == nil {
+				t.Fatal("equity preview acquired live approval")
+			}
+			var leases int64
+			controller.DB.Model(&Lease{}).Count(&leases)
+			if leases != 0 || len(broker.placed) != 0 {
+				t.Fatal("planning reserved the account or placed orders")
+			}
+			if _, err = AccountLimits(account, limits); err == nil {
+				t.Fatal("order review allowed without free margin")
+			}
+			account.Available, account.Position, account.OpenOrders = "200", "0", 0
+			funded, err := AccountLimits(account, limits)
+			if err != nil || funded.PlanningOnly || cmp(funded.AvailableMargin, "200") != 0 {
+				t.Fatalf("fresh review did not use actual free margin: %+v %v", funded, err)
+			}
+		})
+	}
+}
+
+func TestDraftSizingDoesNotMaskInvalidAccountData(t *testing.T) {
+	base := core.Constraints{Leverage: 5, MinRewardRisk: "0", FeeBPS: "10", SlippageBPS: "10"}
+	for _, a := range []Account{
+		{Equity: "259", Available: "", FeeBPS: "5"},
+		{Equity: "259", Available: "unknown", FeeBPS: "5"},
+		{Equity: "0", Available: "0", FeeBPS: "5"},
+		{Equity: "259", Available: "0", FeeBPS: ""},
+	} {
+		if _, err := DraftAccountLimits(a, base); err == nil {
+			t.Fatalf("invalid account became a preview: %+v", a)
+		}
+	}
+	for _, available := range []core.Decimal{"0", "-2", "30"} {
+		c, err := DraftAccountLimits(Account{Equity: "259", Available: available, FeeBPS: "5"}, base)
+		if err != nil || c.PlanningOnly != (available != "30") {
+			t.Fatalf("unexpected planning mode: %+v %v", c, err)
+		}
+	}
+}
 
 func TestAccountSizingUsesFreeMarginAndLeverage(t *testing.T) {
 	a := Account{Equity: "100", Available: "40", FeeBPS: "12", Position: "0"}

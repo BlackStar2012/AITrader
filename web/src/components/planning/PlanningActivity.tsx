@@ -33,6 +33,18 @@ export function recordActivity(
   now = Date.now()
 ): ActivityItem[] {
   const d = event.data
+  if (event.type === 'planning_sizing')
+    return [
+      ...items.filter((item) => item.id !== 'planning_sizing'),
+      {
+        id: 'planning_sizing',
+        label: 'Plan sizing · equity preview',
+        detail: String(d.message),
+        state: 'done' as const,
+        started: now,
+        ended: now,
+      },
+    ]
   if (event.type === 'model_transport')
     return [
       ...items,

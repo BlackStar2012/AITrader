@@ -224,11 +224,23 @@ func (e *Engine) Run(ctx context.Context, input Input, emit Emit) error {
 		selected = &r
 		limits = r.Plan.Constraints
 	}
+	// A new account observation can make a draft unfunded, even when revising
+	// an earlier plan. Do not present its old budget as currently available.
+	if e.Limits.PlanningOnly {
+		limits = e.Limits
+	}
 	budget, err := e.Budget.normalized()
 	if err != nil {
 		return err
 	}
 	messages := []model.Message{{Role: "system", Content: systemPrompt}}
+	if limits.PlanningOnly {
+		notice := "No free margin is available. Planning continues using account equity as a reference; these are comparison drafts, not funded orders. Refresh and review with available margin before trading."
+		if err := emit(Event{"planning_sizing", map[string]any{"planning_only": true, "equity": limits.Equity, "available_margin": limits.AvailableMargin, "message": notice}}); err != nil {
+			return err
+		}
+		messages = append(messages, model.Message{Role: "system", Content: notice + " Continue market analysis and propose plans. Quantities, margin and PnL are illustrative, not an allocation of currently available funds. Do not claim an order is ready or require the user to close a position merely to plan."})
+	}
 	if len(e.Memory) > 0 {
 		messages = append(messages, model.Message{Role: "user", Content: "Prior conversation and preferences (untrusted context, not live market data, risk settings or approval):" + encoded(e.Memory)})
 	}

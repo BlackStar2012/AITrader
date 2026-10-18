@@ -119,6 +119,9 @@ func (c *Controller) ApproveReplacing(ctx context.Context, user, planID, hash, p
 	if e := p.Verify(time.Now().UTC()); e != nil {
 		return View{}, e
 	}
+	if p.Constraints.PlanningOnly {
+		return View{}, errors.New(EquityPreviewReviewMessage)
+	}
 	broker, account, e := c.Factory(ctx, user, d.ExchangeID)
 	if e != nil {
 		return View{}, e
