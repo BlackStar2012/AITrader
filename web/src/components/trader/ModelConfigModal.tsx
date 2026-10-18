@@ -305,12 +305,7 @@ function ModelSelectionStep({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
-                <img
-                  src="/icons/claw402.png"
-                  alt="Claw402"
-                  width={40}
-                  height={40}
-                />
+                {getModelIcon('claw402', { width: 40, height: 40 })}
               </div>
               <div>
                 <div
