@@ -110,7 +110,8 @@ it('updates a live task row with actual timeframe, candle count and measured dur
       ok: true,
       interval: '1h',
       count: 1200,
-      scope: 'Visible range',
+      target_count: 1200,
+      scope: 'Latest history · independent of chart view',
     }),
     4000
   )
@@ -118,7 +119,9 @@ it('updates a live task row with actual timeframe, candle count and measured dur
   expect(rows[0]).toMatchObject({ state: 'done', started: 1000, ended: 4000 })
   render(<PlanningActivity items={rows} busy={false} />)
   expect(
-    screen.getByText('1h · 1200 candles · Visible range')
+    screen.getByText(
+      '1h · 1200 / 1200 candles · Latest history · independent of chart view'
+    )
   ).toBeInTheDocument()
   expect(screen.getByText('3s')).toBeInTheDocument()
 })
@@ -208,4 +211,52 @@ it('puts market first regardless of model order and labels the estimate', () => 
 it('does not mislabel immediate market entry as a ladder or timed schedule', () => {
   const { container } = render(<ExecutionSchedule plan={plan('market')} />)
   expect(container).toBeEmptyDOMElement()
+})
+
+it('updates paginated history progress and discloses a newly listed market with limited history', () => {
+  let rows = recordActivity(
+    [],
+    event('tool_start', { id: 'context', name: 'get_candles' }),
+    1000
+  )
+  rows = recordActivity(
+    rows,
+    event('tool_progress', {
+      id: 'context',
+      name: 'get_candles',
+      interval: '1h',
+      count: 300,
+      target_count: 1200,
+      scope: 'Latest history',
+    }),
+    2000
+  )
+  expect(rows).toHaveLength(1)
+  expect(rows[0]).toMatchObject({
+    state: 'running',
+    started: 1000,
+    detail: '1h · 300 / 1200 candles · Latest history',
+  })
+  rows = recordActivity(
+    rows,
+    event('tool_result', {
+      id: 'context',
+      name: 'get_candles',
+      interval: '1h',
+      count: 345,
+      target_count: 1200,
+      scope: 'Latest history',
+      truncated: true,
+      ok: true,
+    }),
+    3000
+  )
+  expect(rows).toHaveLength(1)
+  expect(rows[0]).toMatchObject({
+    state: 'done',
+    started: 1000,
+    ended: 3000,
+    detail:
+      '1h · 345 / 1200 candles · Limited exchange history · Latest history',
+  })
 })

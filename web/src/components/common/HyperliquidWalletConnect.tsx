@@ -25,6 +25,7 @@ import {
   getWalletProviderName,
   getWalletProviderForAddress,
   normalizeAddress,
+  rememberWalletProvider,
   shortAddress,
   signHyperliquidUserAction,
   subscribeWalletProviders,
@@ -35,7 +36,8 @@ interface HyperliquidWalletConnectProps {
   language: Language
   isLoggedIn: boolean
   variant?: 'dropdown' | 'inline'
-  onSaved?: () => void | Promise<void>
+  account?: { id: string; walletAddress: string }
+  onSaved?: (exchangeID?: string) => void | Promise<void>
 }
 
 interface FlowState {
@@ -121,13 +123,21 @@ export function HyperliquidWalletConnect({
   language,
   isLoggedIn,
   variant = 'dropdown',
+  account: selectedAccount,
   onSaved,
 }: HyperliquidWalletConnectProps) {
   const inline = variant === 'inline'
   const [open, setOpen] = useState(inline)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [state, setState] = useState<FlowState>(() => getSavedState())
+  const [state, setState] = useState<FlowState>(() =>
+    selectedAccount
+      ? {
+          mainWallet: normalizeAddress(selectedAccount.walletAddress),
+          savedExchangeId: selectedAccount.id,
+        }
+      : getSavedState()
+  )
   const currentMainWalletRef = useRef(state.mainWallet)
   const reconciliationGenerationRef = useRef(0)
   const agentRefreshGenerationRef = useRef(0)
@@ -204,8 +214,8 @@ export function HyperliquidWalletConnect({
         language === 'zh' ? 'No EVM wallet detected' : 'No EVM wallet detected',
       noWalletDetail:
         language === 'zh'
-          ? 'Install Rabby or MetaMask, create or import a wallet, then return here to connect Hyperliquid.'
-          : 'Install Rabby or MetaMask, create or import a wallet, then return here to connect Hyperliquid.',
+          ? 'Install an EVM wallet extension in this browser, then reload and choose it here.'
+          : 'Install an EVM wallet extension in this browser, then reload and choose it here.',
       installRabby: language === 'zh' ? 'Install Rabby' : 'Install Rabby',
       installMetaMask:
         language === 'zh' ? 'Install MetaMask' : 'Install MetaMask',
@@ -230,8 +240,8 @@ export function HyperliquidWalletConnect({
   }, [])
 
   useEffect(() => {
-    saveState(state)
-  }, [state])
+    if (!selectedAccount) saveState(state)
+  }, [state, selectedAccount])
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -432,7 +442,8 @@ export function HyperliquidWalletConnect({
   useEffect(() => {
     if (open && state.mainWallet) {
       void refreshBalance(state.mainWallet)
-      void refreshAgentInfo(state.mainWallet)
+      // Let saved-account reconciliation load its agent before a direct refresh.
+      if (state.agentAddress) void refreshAgentInfo(state.mainWallet)
     }
   }, [open, state.mainWallet])
 
@@ -650,19 +661,15 @@ export function HyperliquidWalletConnect({
       setError('Choose the wallet extension you want to connect.')
       return
     }
-    const provider =
-      selectedWalletProvider ||
-      (await getWalletProviderForAddress(expectedWallet))
-    if (!provider) {
-      setError(
-        language === 'zh'
-          ? 'No EVM wallet detected. Install MetaMask, Rabby, OKX or Coinbase Wallet.'
-          : 'No EVM wallet detected. Install MetaMask, Rabby, OKX or Coinbase Wallet.'
-      )
-      return
-    }
     setBusy(true)
     try {
+      const provider =
+        selectedWalletProvider ||
+        (await getWalletProviderForAddress(expectedWallet))
+      if (!provider)
+        throw new Error(
+          'No browser wallet detected. Install an EVM wallet extension in this browser and reload.'
+        )
       const accounts = await provider.request({ method: 'eth_requestAccounts' })
       const first =
         Array.isArray(accounts) && typeof accounts[0] === 'string'
@@ -681,6 +688,7 @@ export function HyperliquidWalletConnect({
         )
       }
       walletProviderRef.current = provider
+      rememberWalletProvider(normalized, provider)
       currentMainWalletRef.current = normalized
       setState((prev) => {
         const sameWallet = prev.mainWallet === normalized
@@ -797,9 +805,9 @@ export function HyperliquidWalletConnect({
     }
   }
 
-  async function refreshAfterSave() {
+  async function refreshAfterSave(exchangeID?: string) {
     try {
-      await onSaved?.()
+      await onSaved?.(exchangeID)
     } catch {
       toast.error(
         'Connection saved. Refresh the page to update dashboard data.'
@@ -1046,7 +1054,7 @@ export function HyperliquidWalletConnect({
         true,
         createdExchangeId || state.savedExchangeId
       )
-      await refreshAfterSave()
+      await refreshAfterSave(createdExchangeId || state.savedExchangeId)
       toast.success('Trading authorization finalized')
     } catch (err) {
       if (approvalComplete) {
@@ -1134,7 +1142,7 @@ export function HyperliquidWalletConnect({
           state.builderApproved,
           existing.id
         )
-        await refreshAfterSave()
+        await refreshAfterSave(existing.id)
         return
       }
       if (!state.agentPrivateKey) {
@@ -1170,7 +1178,7 @@ export function HyperliquidWalletConnect({
         state.builderApproved,
         result.id
       )
-      await refreshAfterSave()
+      await refreshAfterSave(result.id)
     } catch (err) {
       setError(getWalletErrorMessage(err, 'Failed to save Hyperliquid account'))
     } finally {
@@ -1212,7 +1220,9 @@ export function HyperliquidWalletConnect({
         >
           <Wallet className="w-4 h-4" />
           <span>
-            {connectedAddr ? shortAddress(connectedAddr) : text.connect}
+            {connectedAddr
+              ? `Hyperliquid · ${shortAddress(connectedAddr)}`
+              : text.connect}
           </span>
           <ChevronDown className="w-4 h-4" />
         </button>

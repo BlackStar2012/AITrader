@@ -23,7 +23,7 @@
       !venue ||
       !symbol ||
       !/^(?:[a-z0-9]{1,16}:)?[A-Z0-9\p{Script=Han}-]{1,40}$/u.test(symbol) ||
-      !["binance", "okx", "hyperliquid"].includes(venue.toLowerCase())
+      !["binance", "okx", "bitget", "hyperliquid"].includes(venue.toLowerCase())
     )
       throw new Error("Invalid symbol format");
     return { venue: venue.toLowerCase(), symbol };

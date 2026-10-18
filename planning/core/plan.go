@@ -109,7 +109,7 @@ func validateDepth(levels []BookLevel, price, quantity Decimal, descending bool)
 }
 
 func (s Snapshot) Validate(now time.Time) error {
-	if s.Venue != "binance" && s.Venue != "okx" && s.Venue != "hyperliquid" {
+	if s.Venue != "binance" && s.Venue != "okx" && s.Venue != "bitget" && s.Venue != "hyperliquid" {
 		return errors.New("unsupported venue")
 	}
 	if s.Symbol == "" || (s.Kind != "spot" && s.Kind != "perpetual") {
@@ -172,10 +172,14 @@ func (c Constraints) Validate() error {
 	if c.SizingPolicy != "" && c.SizingPolicy != SizingAccountMargin {
 		return errors.New("unsupported sizing policy")
 	}
-	for _, d := range []Decimal{c.Equity, c.MaxRisk, c.MaxNotional, c.MinRewardRisk, c.FeeBPS, c.SlippageBPS} {
+	for _, d := range []Decimal{c.Equity, c.MaxRisk, c.MaxNotional, c.FeeBPS, c.SlippageBPS} {
 		if !Positive(d) {
 			return errors.New("all constraints must be positive decimal strings")
 		}
+	}
+	minimum, err := rat(c.MinRewardRisk)
+	if err != nil || minimum.Sign() < 0 {
+		return errors.New("minimum reward/risk must be a non-negative decimal; 0 disables the minimum")
 	}
 	if c.Leverage < 0 || c.Leverage > 20 {
 		return errors.New("planning leverage must be between 1x and 20x")
@@ -278,7 +282,10 @@ func Compile(s Snapshot, c Constraints, i Idea, now time.Time) (Plan, error) {
 		return p, errors.New("stop and costs consume over 80% of initial margin at this leverage; reduce leverage")
 	}
 	gain := sub(abs(sub(tp, e)), mul(add(e, tp), cost))
-	if gain.Sign() <= 0 || div(gain, loss).Cmp(must(c.MinRewardRisk)) < 0 {
+	if gain.Sign() <= 0 {
+		return p, errors.New("target return does not cover estimated fees and slippage")
+	}
+	if must(c.MinRewardRisk).Sign() > 0 && div(gain, loss).Cmp(must(c.MinRewardRisk)) < 0 {
 		return p, fmt.Errorf("Net reward/risk %s is below minimum %s after fees and slippage; per-unit risk %s, net reward %s", number(div(gain, loss)), c.MinRewardRisk, number(loss), number(gain))
 	}
 	// Keep the former top-level cap only for previously signed plans. New account

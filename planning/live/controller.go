@@ -72,6 +72,10 @@ func (c *Controller) Get(user, id string) (View, error) {
 	return decode(r)
 }
 func (c *Controller) List(user string) ([]View, error) {
+	return c.ListContext(context.Background(), user)
+}
+
+func (c *Controller) ListContext(ctx context.Context, user string) ([]View, error) {
 	var rows []Run
 	if e := c.DB.Where("user_id = ?", user).Order("approved_at desc").Limit(100).Find(&rows).Error; e != nil {
 		return nil, e
@@ -82,11 +86,25 @@ func (c *Controller) List(user string) ([]View, error) {
 		if e != nil {
 			return nil, e
 		}
+		if v.State == "approved" && !time.Now().Before(v.Plan.Expires) {
+			v, e = c.CheckStatus(ctx, user, v.ID)
+			if e != nil {
+				return nil, e
+			}
+		}
 		out = append(out, v)
 	}
 	return out, nil
 }
 func (c *Controller) Approve(ctx context.Context, user, planID, hash, phrase string) (View, error) {
+	return c.ApproveReplacing(ctx, user, planID, hash, phrase, "", "")
+}
+
+// Replacement is bound to the exact unused approval shown during the user's
+// new order review. Concurrent or started trades cannot be replaced.
+func (c *Controller) ApproveReplacing(ctx context.Context, user, planID, hash, phrase, replaceID, replaceHash string) (View, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	if phrase != "APPROVE LIVE" {
 		return View{}, errors.New("Type APPROVE LIVE to approve live trading")
 	}
@@ -119,6 +137,11 @@ func (c *Controller) Approve(ctx context.Context, user, planID, hash, phrase str
 			if _, err = c.CheckStatus(ctx, user, previousLease.RunID); err != nil {
 				return View{}, err
 			}
+			lock := c.runLock(previousLease.RunID)
+			if err = lock.LockContext(ctx); err != nil {
+				return View{}, err
+			}
+			defer lock.Unlock()
 		}
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return View{}, err
@@ -129,19 +152,23 @@ func (c *Controller) Approve(ctx context.Context, user, planID, hash, phrase str
 	defer c.mu.Unlock()
 	e = c.DB.Transaction(func(tx *gorm.DB) error {
 		var lease Lease
-		if tx.Where("account_key = ?", account).First(&lease).Error == nil {
+		if err := tx.Where("account_key = ?", account).First(&lease).Error; err == nil {
 			var previous Run
-			if tx.Where("id = ?", lease.RunID).First(&previous).Error == nil && previous.State == "approved" {
-				v, er := decode(previous)
-				if er == nil && time.Now().After(v.Plan.Expires) {
-					if er = tx.Model(&Run{}).Where("id = ? AND state = ?", previous.ID, "approved").Update("state", "expired").Error; er != nil {
-						return er
-					}
-					if er = tx.Where("account_key = ? AND run_id = ?", account, previous.ID).Delete(&Lease{}).Error; er != nil {
-						return er
-					}
-				}
+			if lease.RunID != previousLease.RunID || lease.UserID != user || tx.Where("id = ? AND user_id = ?", lease.RunID, user).First(&previous).Error != nil {
+				return errors.New("Account approval changed. Refresh and review the order again.")
 			}
+			v, er := decode(previous)
+			if er != nil {
+				return er
+			}
+			if v.PlanID == p.ID || v.State != "approved" || v.ID != replaceID || v.ApprovalHash != replaceHash {
+				return errors.New("An earlier trade is reserving this account. Review the current trade before confirming a new order.")
+			}
+			if er = retireUnusedApproval(tx, v, "cancelled", "Unused approval replaced by a newly confirmed order; no exchange order was submitted."); er != nil {
+				return er
+			}
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
 		}
 		res := tx.Model(&planning.Draft{}).Where("user_id = ? AND id = ? AND status = ?", user, p.ID, "draft").Update("status", "approved")
 		if res.Error != nil {
@@ -205,16 +232,47 @@ func (c *Controller) save(v *View) error {
 	v.UpdatedAt = time.Now().UTC()
 	return c.DB.Model(&Run{}).Where("id = ? AND user_id = ?", v.ID, v.UserID).Updates(map[string]any{"state": v.State, "orders_json": v.OrdersJSON, "started_at": v.StartedAt, "deadline": v.Deadline, "updated_at": v.UpdatedAt, "error": v.Error}).Error
 }
-func (c *Controller) runLock(id string) *sync.Mutex {
-	m, _ := c.runLocks.LoadOrStore(id, &sync.Mutex{})
-	return m.(*sync.Mutex)
+
+type runMutex struct{ token chan struct{} }
+
+func newRunMutex() *runMutex {
+	m := &runMutex{token: make(chan struct{}, 1)}
+	m.token <- struct{}{}
+	return m
+}
+
+func (m *runMutex) Lock()   { <-m.token }
+func (m *runMutex) Unlock() { m.token <- struct{}{} }
+func (m *runMutex) LockContext(ctx context.Context) error {
+	if ctx.Err() != nil {
+		return errors.New("Trade status is still updating. Try again shortly.")
+	}
+	select {
+	case <-m.token:
+		if ctx.Err() != nil {
+			m.Unlock()
+			return errors.New("Trade status is still updating. Try again shortly.")
+		}
+		return nil
+	case <-ctx.Done():
+		return errors.New("Trade status is still updating. Try again shortly.")
+	}
+}
+
+func (c *Controller) runLock(id string) *runMutex {
+	m, _ := c.runLocks.LoadOrStore(id, newRunMutex())
+	return m.(*runMutex)
 }
 
 func (c *Controller) isStopped() bool { c.mu.Lock(); defer c.mu.Unlock(); return c.stopped }
 
-func (c *Controller) Execute(ctx context.Context, user, id, hash string) (View, error) {
+func (c *Controller) Execute(ctx context.Context, user, id, hash string) (out View, err error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	lock := c.runLock(id)
-	lock.Lock()
+	if err := lock.LockContext(ctx); err != nil {
+		return View{}, err
+	}
 	defer lock.Unlock()
 	v, e := c.Get(user, id)
 	if e != nil {
@@ -224,8 +282,26 @@ func (c *Controller) Execute(ctx context.Context, user, id, hash string) (View, 
 		return v, errors.New("locked approval hash required")
 	}
 	if v.State != "approved" {
+		if v.State == "cancelled" || v.State == "expired" {
+			return v, errors.New("This approval is no longer valid. Review the plan again before placing an order.")
+		}
 		return v, nil
 	}
+	defer func() {
+		if err == nil || v.State != "approved" || v.StartedAt != nil || len(v.Orders) != 0 {
+			return
+		}
+		reason := "Order not submitted: " + err.Error()
+		state := "cancelled"
+		if !time.Now().Before(v.Plan.Expires) {
+			state = "expired"
+		}
+		if cleanupErr := c.retireUnusedApproval(&v, state, reason); cleanupErr != nil {
+			err = fmt.Errorf("%w; could not release the unused approval: %v", err, cleanupErr)
+			return
+		}
+		out, err = v, errors.New(reason+". The unused approval was released; review the plan again.")
+	}()
 	if c.isStopped() {
 		return v, errors.New("server is shutting down")
 	}
@@ -337,8 +413,16 @@ func (c *Controller) launch(id, user string) {
 	}()
 }
 func (c *Controller) Reconcile(user, id string) (View, error) {
+	return c.ReconcileContext(context.Background(), user, id)
+}
+
+func (c *Controller) ReconcileContext(ctx context.Context, user, id string) (View, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	lock := c.runLock(id)
-	lock.Lock()
+	if err := lock.LockContext(ctx); err != nil {
+		return View{}, err
+	}
 	defer lock.Unlock()
 	v, e := c.Get(user, id)
 	if e != nil {
@@ -350,8 +434,16 @@ func (c *Controller) Reconcile(user, id string) (View, error) {
 	return v, nil
 }
 func (c *Controller) Stop(user, id, hash string) (View, error) {
+	return c.StopContext(context.Background(), user, id, hash)
+}
+
+func (c *Controller) StopContext(ctx context.Context, user, id, hash string) (View, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	lock := c.runLock(id)
-	lock.Lock()
+	if err := lock.LockContext(ctx); err != nil {
+		return View{}, err
+	}
 	defer lock.Unlock()
 	v, e := c.Get(user, id)
 	if e != nil {
@@ -396,8 +488,12 @@ func (c *Controller) Shutdown() {
 // step serializes durable intent before every external side effect. Unknown
 // acknowledgements are reconciled by client ID, never blindly resubmitted.
 func (c *Controller) step(ctx context.Context, user, id string) bool {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 	lock := c.runLock(id)
-	lock.Lock()
+	if err := lock.LockContext(ctx); err != nil {
+		return false
+	}
 	defer lock.Unlock()
 	v, e := c.Get(user, id)
 	if e != nil {
@@ -419,7 +515,12 @@ func (c *Controller) step(ctx context.Context, user, id string) bool {
 		_ = c.save(&v)
 		return true
 	}
-	attention := func(message string) { v.State = "needs_attention"; v.Error = message }
+	observationsValid, receiptsValid := true, true
+	attention := func(message string) {
+		observationsValid = false
+		v.State = "needs_attention"
+		v.Error = message
+	}
 	if v.Deadline != nil && time.Now().After(*v.Deadline) && v.State == "running" {
 		v.State = "stopping"
 	}
@@ -433,10 +534,12 @@ func (c *Controller) step(ctx context.Context, user, id string) bool {
 		}
 		result, er := broker.Lookup(ctx, *o)
 		if er != nil {
+			receiptsValid = false
 			attention("Exchange order state is unconfirmed; no resubmission:" + er.Error())
 			continue
 		}
-		if !validReceipt(*o, result) || cmp(result.Filled, o.Filled) < 0 {
+		if !validReceipt(*o, result) || (o.OrderID != "" && o.OrderID != result.OrderID) || cmp(result.Filled, o.Filled) < 0 {
+			receiptsValid = false
 			attention("Inconsistent exchange receipt; further entries stopped")
 			continue
 		}
@@ -626,8 +729,11 @@ func (c *Controller) step(ctx context.Context, user, id string) bool {
 	}
 	// A filled entry can precede its account-position update. Recompute after
 	// placement and require confirmed exits before releasing the reservation.
-	// An external close is reconciled explicitly by CheckStatus.
+	// External closes use the same terminal-order proof as CheckStatus.
 	expected = filledExposure(v.Orders)
+	if !pending && er == nil && receiptsValid && confirmedClosedTrade(v.Orders, account) {
+		return c.complete(&v) == nil
+	}
 	if er == nil && cmp(account.Position, expected) != 0 {
 		attention("Entry fills and the exchange position do not yet match. Further entries stopped; waiting for position confirmation. Check the exchange if this persists.")
 	}
@@ -666,8 +772,9 @@ func (c *Controller) step(ctx context.Context, user, id string) bool {
 			return true
 		}
 	}
-	if !pending && v.State == "running" {
+	if !pending && er == nil && observationsValid && confirmedProtectedPosition(v.Orders, account) {
 		v.State = "position_open"
+		v.Error = ""
 	}
 	if e = c.save(&v); e != nil {
 		return true

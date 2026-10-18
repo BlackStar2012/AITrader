@@ -147,3 +147,47 @@ func TestApproveChecksPreviousTradeBeforeReservingAccount(t *testing.T) {
 		})
 	}
 }
+
+func TestManualCloseCleansOnlyConfirmedPlanExits(t *testing.T) {
+	for _, scenario := range []string{"closed", "position", "unknown", "other_user", "running"} {
+		t.Run(scenario, func(t *testing.T) {
+			c, b, _, p := setup(t, "limit")
+			v := started(t, c, p)
+			c.step(context.Background(), "alice", v.ID)
+			v, _ = c.Get("alice", v.ID)
+			entry := b.orders[v.Orders[0].ClientID]
+			entry.Status, entry.Filled = "FILLED", entry.Quantity
+			b.orders[entry.ClientID] = entry
+			b.account.Position = entry.Quantity
+			c.step(context.Background(), "alice", v.ID)
+			v, _ = c.Get("alice", v.ID)
+			v.State = "stopping"
+			c.save(&v)
+			b.account.Position = "0"
+			user := "alice"
+			switch scenario {
+			case "position":
+				b.account.Position = entry.Quantity
+			case "unknown":
+				b.lookupErr = true
+			case "other_user":
+				user = "bob"
+			case "running":
+				v.State = "running"
+				c.save(&v)
+			}
+			placed := len(b.placed)
+			out, err := c.FinishManualClose(context.Background(), user, v.ID)
+			if scenario == "closed" {
+				if err != nil || out.State != "completed" || len(b.cancelled) != 2 {
+					t.Fatal(out.State, err, b.cancelled)
+				}
+			} else if err == nil || len(b.cancelled) != 0 {
+				t.Fatal("unsafe cleanup", err, b.cancelled)
+			}
+			if len(b.placed) != placed || len(c.workers) != 0 {
+				t.Fatal("cleanup submitted or restarted execution")
+			}
+		})
+	}
+}

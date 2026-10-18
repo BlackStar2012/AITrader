@@ -48,8 +48,8 @@ func compileExecution(s Snapshot, c Constraints, i Idea, now time.Time) (Plan, e
 		if err := c.Validate(); err != nil {
 			return Plan{}, err
 		}
-		if s.Kind != "perpetual" || (s.Venue != "binance" && s.Venue != "hyperliquid") {
-			return Plan{}, errors.New("market entry requires Binance or Hyperliquid perpetuals")
+		if s.Kind != "perpetual" || (s.Venue != "binance" && s.Venue != "hyperliquid" && s.Venue != "okx" && s.Venue != "bitget") {
+			return Plan{}, errors.New("market entry requires a supported perpetual exchange")
 		}
 		// Model prices are not executable quotes. Lock a fresh reference and a
 		// conservative execution estimate; Hyperliquid uses it as its IOC bound.

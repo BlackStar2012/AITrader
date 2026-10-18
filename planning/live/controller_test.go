@@ -254,6 +254,15 @@ func TestExecutePreflightFailuresNeverOrder(t *testing.T) {
 			if len(b.placed) != 0 {
 				t.Fatal("preflight ordered")
 			}
+			stored, err := c.Get("alice", v.ID)
+			var leases int64
+			c.DB.Model(&Lease{}).Count(&leases)
+			if err != nil || stored.State != "cancelled" || leases != 0 || stored.Error == "" {
+				t.Fatalf("failed preflight left an unused account reservation: %+v %v leases=%d", stored.Run, err, leases)
+			}
+			if _, err = c.Execute(context.Background(), "alice", v.ID, v.ApprovalHash); err == nil {
+				t.Fatal("retired approval was accepted again")
+			}
 		})
 	}
 }

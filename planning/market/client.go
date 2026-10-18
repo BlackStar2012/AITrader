@@ -21,15 +21,15 @@ import (
 )
 
 type Client struct {
-	discoveryMu                               sync.Mutex
-	discoveryCache                            map[string]MarketList
-	discoveryFlight                           singleflight.Group
-	HTTP                                      *http.Client
-	Binance, BinanceFutures, OKX, Hyperliquid string
+	discoveryMu                                       sync.Mutex
+	discoveryCache                                    map[string]MarketList
+	discoveryFlight                                   singleflight.Group
+	HTTP                                              *http.Client
+	Binance, BinanceFutures, OKX, Bitget, Hyperliquid string
 }
 
 func New() *Client {
-	return &Client{HTTP: &http.Client{Timeout: 10 * time.Second}, Binance: "https://data-api.binance.vision", BinanceFutures: "https://fapi.binance.com", OKX: "https://www.okx.com", Hyperliquid: "https://api.hyperliquid.xyz"}
+	return &Client{HTTP: &http.Client{Timeout: 10 * time.Second}, Binance: "https://data-api.binance.vision", BinanceFutures: "https://fapi.binance.com", OKX: "https://www.okx.com", Bitget: "https://api.bitget.com", Hyperliquid: "https://api.hyperliquid.xyz"}
 }
 func (c *Client) request(ctx context.Context, method, u string, body any, out any) error {
 	var b []byte

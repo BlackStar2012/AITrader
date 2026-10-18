@@ -43,7 +43,7 @@ func TestMarketUsesExecutableBookAndConservativeRisk(t *testing.T) {
 }
 func TestMarketRejectsInvalidContextAndUnsupportedExecution(t *testing.T) {
 	for _, change := range []func(*Snapshot, *Constraints, *Idea){
-		func(s *Snapshot, c *Constraints, i *Idea) { s.Venue = "okx" },
+		func(s *Snapshot, c *Constraints, i *Idea) { s.Venue = "unsupported" },
 		func(s *Snapshot, c *Constraints, i *Idea) { s.Kind = "spot" },
 		func(s *Snapshot, c *Constraints, i *Idea) { s.Ask = "invalid" },
 		func(s *Snapshot, c *Constraints, i *Idea) { c.SlippageBPS = "invalid" },
@@ -56,6 +56,37 @@ func TestMarketRejectsInvalidContextAndUnsupportedExecution(t *testing.T) {
 		change(&s, &c, &i)
 		if _, err := Compile(s, c, i, now); err == nil {
 			t.Fatal("invalid market execution accepted")
+		}
+	}
+}
+
+func TestNewVenuesSupportAllEntryStructures(t *testing.T) {
+	for _, venue := range []string{"okx", "bitget"} {
+		for _, kind := range []string{"market", "limit", "ladder", "twap"} {
+			t.Run(venue+kind, func(t *testing.T) {
+				s, c, i, now := fixture()
+				s.Venue = venue
+				s.Kind = "perpetual"
+				i.Execution = &Execution{Kind: kind}
+				if venue == "okx" {
+					s.Symbol = "BTC-USDT-SWAP"
+					s.ContractValue = "0.01"
+				}
+				if kind == "ladder" {
+					i.Execution.Levels = []Level{{Price: i.Entry, Weight: "0.5"}, {Price: "99900", Weight: "0.5"}}
+				}
+				if kind == "twap" {
+					i.Execution.Slices = 4
+					i.Execution.IntervalSeconds = 30
+				}
+				p, e := Compile(s, c, i, now)
+				if e != nil {
+					t.Fatal(e)
+				}
+				if e = p.Verify(now); e != nil {
+					t.Fatal(e)
+				}
+			})
 		}
 	}
 }

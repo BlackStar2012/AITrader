@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/adshao/go-binance/v2/common"
 	"github.com/adshao/go-binance/v2/futures"
 	"math/big"
 	"net/http"
@@ -46,6 +47,44 @@ func NewExecutionTrader(key, secret, userID string) *FuturesTrader {
 	}
 	return &FuturesTrader{client: c, cacheDuration: 15 * time.Second}
 }
+
+// NewAccountTrader calibrates signed reads without changing position mode,
+// leverage, margin mode, or orders. Callers replace long-lived cached clients.
+func NewAccountTrader(ctx context.Context, key, secret, userID string) (*FuturesTrader, error) {
+	b := NewExecutionTrader(key, secret, userID)
+	if err := b.calibrateClock(ctx); err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func (b *FuturesTrader) calibrateClock(ctx context.Context) error {
+	start := time.Now().UnixMilli()
+	serverTime, err := b.client.NewServerTimeService().Do(ctx)
+	if err != nil {
+		return binanceReadError("synchronize the Binance clock", err)
+	}
+	b.client.TimeOffset = (start+time.Now().UnixMilli())/2 - serverTime
+	return nil
+}
+
+// Never expose signed request URLs or upstream credential-bearing errors.
+func binanceReadError(action string, err error) error {
+	var apiErr *common.APIError
+	if errors.As(err, &apiErr) {
+		switch apiErr.Code {
+		case -1021:
+			return errors.New("Binance rejected the request timestamp. Refresh the connection to synchronize the server clock (code -1021).")
+		case -2014, -2015:
+			return fmt.Errorf("Binance rejected account access. Check the API key, server IP allowlist and Futures permissions (code %d).", apiErr.Code)
+		case -1022:
+			return errors.New("Binance rejected the API signature. Check the saved API secret (code -1022).")
+		default:
+			return fmt.Errorf("Could not %s (Binance code %d).", action, apiErr.Code)
+		}
+	}
+	return fmt.Errorf("Could not %s. Check the NOFX server connection and try again.", action)
+}
 func ratString(s string) (*big.Rat, error) {
 	n, ok := new(big.Rat).SetString(s)
 	if !ok {
@@ -66,7 +105,7 @@ func (b *FuturesTrader) AccountSnapshot(ctx context.Context, symbol string) (exe
 	out.Position = "0"
 	account, e := b.client.NewGetAccountService().Do(ctx)
 	if e != nil {
-		return out, errors.New("Could not read the Binance account")
+		return out, binanceReadError("read the Binance account", e)
 	}
 	if !account.CanTrade || account.MultiAssetsMargin {
 		return out, errors.New("Account cannot trade or uses unsupported multi-asset margin")
@@ -86,16 +125,16 @@ func (b *FuturesTrader) AccountSnapshot(ctx context.Context, symbol string) (exe
 	out.Position = execution.Decimal(qty.FloatString(12))
 	orders, e := b.client.NewListOpenOrdersService().Symbol(symbol).Do(ctx)
 	if e != nil {
-		return out, errors.New("Could not read Binance open orders")
+		return out, binanceReadError("read Binance open orders", e)
 	}
 	algos, e := b.client.NewListOpenAlgoOrdersService().Symbol(symbol).Do(ctx)
 	if e != nil {
-		return out, errors.New("Could not read Binance protective orders")
+		return out, binanceReadError("read Binance protective orders", e)
 	}
 	out.OpenOrders = len(orders) + len(algos)
 	fee, e := b.client.NewCommissionRateService().Symbol(symbol).Do(ctx)
 	if e != nil {
-		return out, errors.New("Could not read Binance actual fees")
+		return out, binanceReadError("read Binance actual fees", e)
 	}
 	maker, e := ratString(fee.MakerCommissionRate)
 	if e != nil {
@@ -138,7 +177,7 @@ func executionPosition(side string, hedge bool) futures.PositionSideType {
 	return futures.PositionSideTypeShort
 }
 func (b *FuturesTrader) SubmitOrder(ctx context.Context, o execution.Order) (execution.Order, error) {
-	if o.Type != "" && (o.Type != "market" || o.Role != "entry" || o.PostOnly || o.ReduceOnly) {
+	if o.Type != "" && (o.Type != "market" || o.Role != "entry" || o.PostOnly) {
 		return o, errors.New("unsupported execution order type")
 	}
 	nativeID, err := b.nativeClientID(o)
@@ -149,7 +188,7 @@ func (b *FuturesTrader) SubmitOrder(ctx context.Context, o execution.Order) (exe
 		return o, errors.New("Broker route must be persisted before submitting a new order")
 	}
 
-	if len(o.ClientID) != 32 || !execution.Positive(o.Price) || !execution.Positive(o.Quantity) || (o.Side != "long" && o.Side != "short") {
+	if len(o.ClientID) != 32 || !execution.ValidOrderPrice(o) || !execution.Positive(o.Quantity) || (o.Side != "long" && o.Side != "short") {
 		return o, errors.New("invalid locked order")
 	}
 	mode, e := b.client.NewGetPositionModeService().Do(ctx)
@@ -184,6 +223,9 @@ func (b *FuturesTrader) SubmitOrder(ctx context.Context, o execution.Order) (exe
 		service := b.client.NewCreateOrderService().Symbol(o.Symbol).Side(side).PositionSide(positionSide).Quantity(string(o.Quantity)).NewClientOrderID(nativeID)
 		if o.Type == "market" {
 			orderType = futures.OrderTypeMarket
+			if o.ReduceOnly {
+				service.NewOrderResponseType(futures.NewOrderRespTypeRESULT)
+			}
 		} else {
 			service.TimeInForce(tif).Price(string(o.Price))
 		}

@@ -135,10 +135,20 @@ export function recordActivity(
       detail: 'In progress',
       state: 'running',
     })
+  if (event.type === 'tool_progress')
+    return upsert(items, {
+      id: String(d.id),
+      label: titles[String(d.name)] || 'Run planning tool',
+      detail: `${d.interval} · ${d.count} / ${d.target_count} candles · ${d.scope}`,
+      state: 'running',
+    })
   if (event.type === 'tool_result') {
     const detail = [
       d.interval,
-      typeof d.count === 'number' ? `${d.count} candles` : undefined,
+      typeof d.count === 'number'
+        ? `${d.count}${typeof d.target_count === 'number' ? ` / ${d.target_count}` : ''} candles`
+        : undefined,
+      d.truncated ? 'Limited exchange history' : undefined,
       d.scope,
     ]
       .filter(Boolean)
