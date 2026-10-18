@@ -1503,12 +1503,12 @@ export function TradingPlanningPage() {
               {messages.length === 0 && !current && (
                 <div className="frontier-welcome">
                   <span className="frontier-welcome-icon" aria-hidden="true">
-                    ✳
+                    <img src="/icons/nofx-flow.svg" alt="" />
                   </span>
                   <h2>
-                    Turn a market view
+                    Your next move,
                     <br />
-                    into a clear plan.
+                    made clear.
                   </h2>
                   <p>
                     Tell me what you’re considering. I’ll map out entries, risk

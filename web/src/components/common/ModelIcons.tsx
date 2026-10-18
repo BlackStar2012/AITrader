@@ -71,5 +71,5 @@ export const getModelIcon = (modelType: string, props: IconProps = {}) => {
 // Returns the model color (fallback for when there is no icon)
 export const getModelColor = (modelType: string): string => {
   const type = modelType.includes('_') ? modelType.split('_').pop() : modelType
-  return MODEL_COLORS[type || ''] || '#E0483B'
+  return MODEL_COLORS[type || ''] || '#295be8'
 }

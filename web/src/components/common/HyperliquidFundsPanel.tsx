@@ -327,7 +327,7 @@ export function HyperliquidFundsPanel({
   if (!address) return null
 
   return (
-    <div className="rounded-xl border border-[rgba(26,24,19,0.14)] bg-nofx-bg-deeper p-4 space-y-4">
+    <div className="rounded-xl border border-[rgba(25,36,52,0.14)] bg-nofx-bg-deeper p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
           <button
@@ -389,7 +389,7 @@ export function HyperliquidFundsPanel({
           </div>
         </div>
         {unifiedAccount ? (
-          <div className="rounded-xl border border-[rgba(26,24,19,0.14)] bg-nofx-bg p-3 col-span-2">
+          <div className="rounded-xl border border-[rgba(25,36,52,0.14)] bg-nofx-bg p-3 col-span-2">
             <div className="text-nofx-text-muted text-xs">{t.hlAccount}</div>
             <div className="font-mono font-medium text-nofx-text">
               {formatUSDC(account?.spotUsdc)} USDC
@@ -404,7 +404,7 @@ export function HyperliquidFundsPanel({
           </div>
         ) : (
           <>
-            <div className="rounded-xl border border-[rgba(26,24,19,0.14)] bg-nofx-bg p-3">
+            <div className="rounded-xl border border-[rgba(25,36,52,0.14)] bg-nofx-bg p-3">
               <div className="text-nofx-text-muted text-xs">{t.spot}</div>
               <div className="font-mono font-medium text-nofx-text">
                 {formatUSDC(account?.spotUsdc)} USDC
@@ -413,7 +413,7 @@ export function HyperliquidFundsPanel({
                 {t.available}: {formatUSDC(account?.spotUsdcAvailable)}
               </div>
             </div>
-            <div className="rounded-xl border border-[rgba(26,24,19,0.14)] bg-nofx-bg p-3">
+            <div className="rounded-xl border border-[rgba(25,36,52,0.14)] bg-nofx-bg p-3">
               <div className="text-nofx-text-muted text-xs">{t.perp}</div>
               <div className="font-mono font-medium text-nofx-text">
                 {formatUSDC(account?.accountValue)} USDC
@@ -443,7 +443,7 @@ export function HyperliquidFundsPanel({
             {t.depositHint}
           </p>
           <p className="text-xs text-amber-500">{t.depositWarn}</p>
-          <div className="rounded-xl border border-[rgba(26,24,19,0.14)] bg-nofx-bg p-3 space-y-2">
+          <div className="rounded-xl border border-[rgba(25,36,52,0.14)] bg-nofx-bg p-3 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-nofx-text">
                 {t.bridgeTitle}
@@ -459,7 +459,7 @@ export function HyperliquidFundsPanel({
                 step="0.01"
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(e.target.value)}
-                className="flex-1 rounded-xl border border-[rgba(26,24,19,0.14)] bg-nofx-bg-deeper px-3 py-1.5 text-sm font-mono text-nofx-text"
+                className="flex-1 rounded-xl border border-[rgba(25,36,52,0.14)] bg-nofx-bg-deeper px-3 py-1.5 text-sm font-mono text-nofx-text"
                 placeholder={t.bridgeAmount}
               />
               <button
@@ -470,7 +470,7 @@ export function HyperliquidFundsPanel({
                     (Math.floor(walletUsdc * 100) / 100).toString()
                   )
                 }
-                className="px-3 py-1.5 rounded-xl border border-[rgba(26,24,19,0.14)] bg-nofx-bg-deeper text-sm text-nofx-text-muted hover:text-nofx-text"
+                className="px-3 py-1.5 rounded-xl border border-[rgba(25,36,52,0.14)] bg-nofx-bg-deeper text-sm text-nofx-text-muted hover:text-nofx-text"
               >
                 {t.max}
               </button>
@@ -525,13 +525,13 @@ export function HyperliquidFundsPanel({
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="flex-1 rounded-xl border border-[rgba(26,24,19,0.14)] bg-nofx-bg px-3 py-1.5 text-sm font-mono text-nofx-text"
+                className="flex-1 rounded-xl border border-[rgba(25,36,52,0.14)] bg-nofx-bg px-3 py-1.5 text-sm font-mono text-nofx-text"
                 placeholder="0.00"
               />
               <button
                 type="button"
                 onClick={() => setAmount(availableFrom.toFixed(2))}
-                className="px-3 py-1.5 rounded-xl border border-[rgba(26,24,19,0.14)] bg-nofx-bg text-sm text-nofx-text-muted hover:text-nofx-text"
+                className="px-3 py-1.5 rounded-xl border border-[rgba(25,36,52,0.14)] bg-nofx-bg text-sm text-nofx-text-muted hover:text-nofx-text"
               >
                 {t.max}
               </button>

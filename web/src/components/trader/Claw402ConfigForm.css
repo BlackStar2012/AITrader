@@ -1,5 +1,5 @@
 .ai-wallet-setup {
-  color: #252a24;
+  color: #192434;
   font-size: 14px;
   line-height: 1.55;
   display: grid;
@@ -13,7 +13,7 @@
 }
 .ai-wallet-setup p {
   margin: 8px 0 16px;
-  color: #707568;
+  color: #637087;
 }
 .ai-wallet-setup button {
   transition: background 0.15s;
@@ -25,7 +25,7 @@
 .ai-wallet-setup button:focus-visible,
 .ai-wallet-setup summary:focus-visible,
 .ai-wallet-setup input:focus-visible {
-  outline: 2px solid #55775c;
+  outline: 2px solid #295be8;
   outline-offset: 3px;
 }
 .ai-wallet-primary,
@@ -40,21 +40,21 @@
 }
 .ai-wallet-primary {
   color: white;
-  background: #e34437;
-  border: 1px solid #e34437;
+  background: #295be8;
+  border: 1px solid #295be8;
 }
 .ai-wallet-primary:hover:not(:disabled) {
-  background: #ca372d;
+  background: #204bc4;
 }
 .ai-wallet-secondary {
-  color: #384c3b;
+  color: #39475b;
   background: white;
-  border: 1px solid #dce1d6;
+  border: 1px solid #e1e7f0;
   font-size: 13px;
   padding: 8px 12px;
 }
 .ai-wallet-link {
-  color: #636c5c;
+  color: #637087;
   text-decoration: underline;
   text-underline-offset: 3px;
   font-size: 13px;
@@ -62,7 +62,7 @@
   padding: 4px 0;
 }
 .ai-wallet-model {
-  border: 1px solid #e0e2d9;
+  border: 1px solid #e1e7f0;
   border-radius: 12px;
   background: #fff;
   padding: 14px 18px;
@@ -81,7 +81,7 @@
 }
 .ai-wallet-model small,
 .ai-wallet-muted {
-  color: #777c70;
+  color: #707e92;
   font-size: 12px;
 }
 .ai-wallet-model-grid {
@@ -94,16 +94,16 @@
   gap: 5px;
   text-align: left;
   padding: 12px;
-  border: 1px solid #e0e2d9;
+  border: 1px solid #e1e7f0;
   border-radius: 8px;
 }
 .ai-wallet-model-grid button[aria-pressed='true'] {
-  border-color: #e34437;
-  background: #fff1ed;
+  border-color: #295be8;
+  background: #edf2ff;
 }
 .ai-wallet-model-grid span {
   font-size: 11px;
-  color: #72786c;
+  color: #637087;
 }
 .ai-wallet-steps {
   display: flex;
@@ -112,7 +112,7 @@
   padding: 0 12px;
   list-style: none;
   font-size: 12px;
-  color: #828779;
+  color: #707e92;
 }
 .ai-wallet-steps li {
   display: flex;
@@ -125,21 +125,21 @@
   width: 25px;
   height: 25px;
   border-radius: 50%;
-  border: 1px solid #dce1d6;
+  border: 1px solid #e1e7f0;
 }
 .ai-wallet-steps [aria-current='step'] {
-  color: #293c2d;
+  color: #295be8;
   font-weight: 600;
 }
 .ai-wallet-steps [aria-current='step'] > span,
 .ai-wallet-steps [data-complete='true'] > span {
-  background: #324c3c;
-  border-color: #324c3c;
+  background: #295be8;
+  border-color: #295be8;
   color: white;
 }
 .ai-wallet-welcome,
 .ai-wallet-panel {
-  border: 1px solid #e0e2d9;
+  border: 1px solid #e1e7f0;
   border-radius: 14px;
   background: #fff;
   padding: 24px;
@@ -159,8 +159,8 @@
   margin: 4px 0 12px;
 }
 .ai-wallet-icon {
-  color: #49634c;
-  background: #eef2e9;
+  color: #295be8;
+  background: #edf2ff;
   padding: 15px;
   border-radius: 16px;
   margin-bottom: 15px;
@@ -168,7 +168,7 @@
 .ai-wallet-setup .ai-wallet-caption {
   font-size: 12px;
   margin: 14px 0 0;
-  color: #858a7e;
+  color: #707e92;
 }
 .ai-wallet-panel > label {
   display: block;
@@ -178,9 +178,9 @@
 }
 .ai-wallet-panel > input,
 .ai-wallet-key {
-  border: 1px solid #dce1d6;
+  border: 1px solid #e1e7f0;
   border-radius: 8px;
-  background: #f8f9f5;
+  background: #f6f8fc;
   width: 100%;
   margin-bottom: 12px;
 }
@@ -218,7 +218,7 @@
 .ai-wallet-check input {
   width: 17px;
   height: 17px;
-  accent-color: #3a5842;
+  accent-color: #295be8;
 }
 .ai-wallet-heading {
   display: flex;
@@ -239,7 +239,7 @@
   align-items: center;
   gap: 22px;
   padding: 18px;
-  border: 1px solid #dce1d6;
+  border: 1px solid #e1e7f0;
   border-radius: 10px;
 }
 .ai-wallet-qr {
@@ -248,7 +248,7 @@
   flex-shrink: 0;
 }
 .ai-wallet-deposit label {
-  color: #777c70;
+  color: #707e92;
   font-size: 12px;
 }
 .ai-wallet-deposit code {
@@ -275,7 +275,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 15px;
-  background: #f2f5ee;
+  background: #f6f8fc;
   border-radius: 10px;
   padding: 16px;
 }
@@ -285,12 +285,12 @@
 }
 .ai-wallet-balance strong {
   font-size: 22px;
-  color: #385440;
+  color: #192434;
 }
 .ai-wallet-balance small,
 .ai-wallet-balance span {
   font-size: 12px;
-  color: #717c68;
+  color: #637087;
 }
 .ai-wallet-balance button {
   flex-shrink: 0;

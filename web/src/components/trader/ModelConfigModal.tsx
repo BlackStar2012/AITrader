@@ -153,7 +153,7 @@ export function ModelConfigModal({
                 >
                   <svg
                     className="w-5 h-5"
-                    style={{ color: '#8A8478' }}
+                    style={{ color: '#707e92' }}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -167,7 +167,7 @@ export function ModelConfigModal({
                   </svg>
                 </button>
               )}
-              <h3 className="text-xl font-bold" style={{ color: '#1A1813' }}>
+              <h3 className="text-xl font-bold" style={{ color: '#192434' }}>
                 {editingModelId
                   ? t('editAIModel', language)
                   : t('addAIModel', language)}
@@ -189,7 +189,7 @@ export function ModelConfigModal({
                 onClick={onClose}
                 aria-label="Close AI setup"
                 className="p-2 rounded-lg hover:bg-nofx-bg-deeper transition-colors"
-                style={{ color: '#8A8478' }}
+                style={{ color: '#707e92' }}
               >
                 ✕
               </button>
@@ -284,7 +284,7 @@ function ModelSelectionStep({
 }) {
   return (
     <div className="space-y-4">
-      <div className="text-sm font-semibold" style={{ color: '#1A1813' }}>
+      <div className="text-sm font-semibold" style={{ color: '#192434' }}>
         {t('modelConfig.chooseProvider', language)}
       </div>
 
@@ -298,8 +298,8 @@ function ModelSelectionStep({
           }}
           className="w-full p-5 rounded-xl text-left transition-all hover:scale-[1.01]"
           style={{
-            background: 'rgba(224, 72, 59, 0.10)',
-            border: '1.5px solid rgba(224, 72, 59, 0.4)',
+            background: 'rgba(41,91,232, 0.10)',
+            border: '1.5px solid rgba(41,91,232, 0.4)',
           }}
         >
           <div className="flex items-center justify-between">
@@ -310,7 +310,7 @@ function ModelSelectionStep({
               <div>
                 <div
                   className="font-bold text-base"
-                  style={{ color: '#1A1813' }}
+                  style={{ color: '#192434' }}
                 >
                   Claw402
                   <a
@@ -320,14 +320,14 @@ function ModelSelectionStep({
                     onClick={(e) => e.stopPropagation()}
                     className="ml-1.5 text-[10px] font-normal px-1.5 py-0.5 rounded-sm"
                     style={{
-                      color: '#E0483B',
-                      background: 'rgba(224, 72, 59, 0.1)',
+                      color: '#295be8',
+                      background: 'rgba(41,91,232, 0.1)',
                     }}
                   >
                     ↗ claw402.ai
                   </a>
                 </div>
-                <div className="text-xs mt-0.5" style={{ color: '#8A8478' }}>
+                <div className="text-xs mt-0.5" style={{ color: '#707e92' }}>
                   {t('modelConfig.payPerCall', language)}
                 </div>
               </div>
@@ -344,7 +344,7 @@ function ModelSelectionStep({
               <div
                 className="px-3 py-1.5 rounded-full text-xs font-bold"
                 style={{
-                  background: '#E0483B',
+                  background: '#295be8',
                   color: '#fff',
                 }}
               >
@@ -383,7 +383,7 @@ function ModelSelectionStep({
             />
           ))}
       </div>
-      <div className="text-xs text-center pt-2" style={{ color: '#8A8478' }}>
+      <div className="text-xs text-center pt-2" style={{ color: '#707e92' }}>
         {t('modelConfig.modelsConfigured', language)}
       </div>
     </div>
@@ -421,8 +421,8 @@ function StandardProviderConfigForm({
       <div
         className="p-4 rounded-xl flex items-center gap-4"
         style={{
-          background: '#F1ECE2',
-          border: '1px solid rgba(26,24,19,0.14)',
+          background: '#f6f8fc',
+          border: '1px solid rgba(25,36,52,0.14)',
         }}
       >
         <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-nofx-bg-deeper border border-nofx-gold/20">
@@ -430,16 +430,16 @@ function StandardProviderConfigForm({
             width: 32,
             height: 32,
           }) || (
-            <span className="text-lg font-bold" style={{ color: '#E0483B' }}>
+            <span className="text-lg font-bold" style={{ color: '#295be8' }}>
               {selectedModel.name[0]}
             </span>
           )}
         </div>
         <div className="flex-1">
-          <div className="font-semibold text-lg" style={{ color: '#1A1813' }}>
+          <div className="font-semibold text-lg" style={{ color: '#192434' }}>
             {getShortName(selectedModel.name)}
           </div>
-          <div className="text-xs" style={{ color: '#8A8478' }}>
+          <div className="text-xs" style={{ color: '#707e92' }}>
             {selectedModel.provider} •{' '}
             {AI_PROVIDER_CONFIG[selectedModel.provider]?.defaultModel ||
               selectedModel.id}
@@ -452,12 +452,12 @@ function StandardProviderConfigForm({
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all hover:scale-105"
             style={{
-              background: 'rgba(224, 72, 59, 0.1)',
-              border: '1px solid rgba(224, 72, 59, 0.3)',
+              background: 'rgba(41,91,232, 0.1)',
+              border: '1px solid rgba(41,91,232, 0.3)',
             }}
           >
-            <ExternalLink className="w-4 h-4" style={{ color: '#E0483B' }} />
-            <span className="text-sm font-medium" style={{ color: '#E0483B' }}>
+            <ExternalLink className="w-4 h-4" style={{ color: '#295be8' }} />
+            <span className="text-sm font-medium" style={{ color: '#295be8' }}>
               {t('modelConfig.getApiKey', language)}
             </span>
           </a>
@@ -502,11 +502,11 @@ function StandardProviderConfigForm({
       <div className="space-y-2">
         <label
           className="flex items-center gap-2 text-sm font-semibold"
-          style={{ color: '#1A1813' }}
+          style={{ color: '#192434' }}
         >
           <svg
             className="w-4 h-4"
-            style={{ color: '#E0483B' }}
+            style={{ color: '#295be8' }}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -531,9 +531,9 @@ function StandardProviderConfigForm({
           }
           className="w-full px-4 py-3 rounded-xl"
           style={{
-            background: '#F1ECE2',
-            border: '1px solid rgba(26,24,19,0.14)',
-            color: '#1A1813',
+            background: '#f6f8fc',
+            border: '1px solid rgba(25,36,52,0.14)',
+            color: '#192434',
           }}
           required={!(editingModelId && selectedModel.has_api_key)}
         />
@@ -543,11 +543,11 @@ function StandardProviderConfigForm({
       <div className="space-y-2">
         <label
           className="flex items-center gap-2 text-sm font-semibold"
-          style={{ color: '#1A1813' }}
+          style={{ color: '#192434' }}
         >
           <svg
             className="w-4 h-4"
-            style={{ color: '#E0483B' }}
+            style={{ color: '#295be8' }}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -568,12 +568,12 @@ function StandardProviderConfigForm({
           placeholder={t('customBaseURLPlaceholder', language)}
           className="w-full px-4 py-3 rounded-xl"
           style={{
-            background: '#F1ECE2',
-            border: '1px solid rgba(26,24,19,0.14)',
-            color: '#1A1813',
+            background: '#f6f8fc',
+            border: '1px solid rgba(25,36,52,0.14)',
+            color: '#192434',
           }}
         />
-        <div className="text-xs" style={{ color: '#8A8478' }}>
+        <div className="text-xs" style={{ color: '#707e92' }}>
           {t('leaveBlankForDefault', language)}
         </div>
       </div>
@@ -582,11 +582,11 @@ function StandardProviderConfigForm({
       <div className="space-y-2">
         <label
           className="flex items-center gap-2 text-sm font-semibold"
-          style={{ color: '#1A1813' }}
+          style={{ color: '#192434' }}
         >
           <svg
             className="w-4 h-4"
-            style={{ color: '#E0483B' }}
+            style={{ color: '#295be8' }}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -607,12 +607,12 @@ function StandardProviderConfigForm({
           placeholder={t('customModelNamePlaceholder', language)}
           className="w-full px-4 py-3 rounded-xl"
           style={{
-            background: '#F1ECE2',
-            border: '1px solid rgba(26,24,19,0.14)',
-            color: '#1A1813',
+            background: '#f6f8fc',
+            border: '1px solid rgba(25,36,52,0.14)',
+            color: '#192434',
           }}
         />
-        <div className="text-xs" style={{ color: '#8A8478' }}>
+        <div className="text-xs" style={{ color: '#707e92' }}>
           {t('leaveBlankForDefaultModel', language)}
         </div>
       </div>
@@ -621,18 +621,18 @@ function StandardProviderConfigForm({
       <div
         className="p-4 rounded-xl"
         style={{
-          background: 'rgba(224, 72, 59, 0.08)',
-          border: '1px solid rgba(224, 72, 59, 0.2)',
+          background: 'rgba(41,91,232, 0.08)',
+          border: '1px solid rgba(41,91,232, 0.2)',
         }}
       >
         <div
           className="text-sm font-semibold mb-2 flex items-center gap-2"
-          style={{ color: '#E0483B' }}
+          style={{ color: '#295be8' }}
         >
           <Brain className="w-4 h-4" />
           {t('information', language)}
         </div>
-        <div className="text-xs space-y-1" style={{ color: '#8A8478' }}>
+        <div className="text-xs space-y-1" style={{ color: '#707e92' }}>
           <div>• {t('modelConfigInfo1', language)}</div>
           <div>• {t('modelConfigInfo2', language)}</div>
           <div>• {t('modelConfigInfo3', language)}</div>
@@ -645,7 +645,7 @@ function StandardProviderConfigForm({
           type="button"
           onClick={onBack}
           className="flex-1 px-4 py-3 rounded-xl text-sm font-semibold transition-all hover:bg-nofx-bg-deeper"
-          style={{ background: '#E8E2D5', color: '#8A8478' }}
+          style={{ background: '#edf1f7', color: '#707e92' }}
         >
           {editingModelId
             ? t('cancel', language)
@@ -658,7 +658,7 @@ function StandardProviderConfigForm({
             (!apiKey.trim() && !(editingModelId && selectedModel.has_api_key))
           }
           className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ background: '#E0483B', color: '#fff' }}
+          style={{ background: '#295be8', color: '#fff' }}
         >
           {t('saveConfig', language)}
           <svg
